@@ -1,5 +1,6 @@
 use AttrMap;
 use HashMap;
+use super::Error;
 
 macro_rules! map(
   { $($key:expr => $value:expr),+ } => {
@@ -12,9 +13,6 @@ macro_rules! map(
     }
   };
 );
-
-#[derive(Debug)]
-pub struct LexerErr(String);
 
 #[derive(Debug)]
 enum PreLexed {
@@ -40,9 +38,9 @@ enum Token {
 
 #[derive(Debug)]
 pub struct Tag {
-  name: String,
-  attrs: AttrMap,
-  status: TagStatus
+  pub name: String,
+  pub attrs: AttrMap,
+  pub status: TagStatus
 }
 
 #[derive(Debug, PartialEq)]
@@ -59,7 +57,7 @@ pub enum TagContents {
   Content(String)
 }
 
-fn pre_lex(query: String) -> Result<Vec<PreLexed>, LexerErr> {
+fn pre_lex(query: String) -> Result<Vec<PreLexed>, Error> {
   let mut result: Vec<PreLexed> = Vec::new();
   let mut buf: String = String::new();
   let mut is_string = false;
@@ -88,7 +86,7 @@ fn pre_lex(query: String) -> Result<Vec<PreLexed>, LexerErr> {
   Ok(result)
 }
 
-fn tokenize(pre_lexed: Vec<PreLexed>) -> Result<Vec<Lexed>, LexerErr> {
+fn tokenize(pre_lexed: Vec<PreLexed>) -> Result<Vec<Lexed>, Error> {
   let token_lookup: HashMap<&str, Token> = map!{
     "<" => Token::LT,
     ">" => Token::GT,
@@ -166,7 +164,7 @@ fn tokenize(pre_lexed: Vec<PreLexed>) -> Result<Vec<Lexed>, LexerErr> {
           pos = offset + 1;
           offset = length;
           // if offset <= 0 {
-          //   return Err(LexerErr("Token not found".into_string()))
+          //   return Err(Error("Token not found".into_string()))
           // }
         }
       }
@@ -176,7 +174,7 @@ fn tokenize(pre_lexed: Vec<PreLexed>) -> Result<Vec<Lexed>, LexerErr> {
   Ok(tokenized)
 }
 
-fn taginize(tokenized: Vec<Lexed>) -> Result<Vec<TagContents>, LexerErr> {
+fn taginize(tokenized: Vec<Lexed>) -> Result<Vec<TagContents>, Error> {
   let mut tags: Vec<TagContents> = Vec::new();
 
   let mut in_tag = false;
@@ -200,7 +198,7 @@ fn taginize(tokenized: Vec<Lexed>) -> Result<Vec<TagContents>, LexerErr> {
                 let n = (last.0, s.to_string());
                 buf_attrs.push(n);
               },
-              None => return Err(LexerErr("Wrong equals".to_string()))
+              None => return Err(Error("Wrong equals".to_string()))
             }
           }
         } else {
@@ -235,7 +233,7 @@ fn taginize(tokenized: Vec<Lexed>) -> Result<Vec<TagContents>, LexerErr> {
       Lexed::Token(token) => match token {
         Token::LT | Token::CloseTag => {
           if in_tag {
-            return Err(LexerErr("Tag error: <".to_string()));
+            return Err(Error("Tag error: <".to_string()));
           } else {
             if pre_tag_buf.len() > 0 {
               tags.push(TagContents::Content(pre_tag_buf));
@@ -252,18 +250,20 @@ fn taginize(tokenized: Vec<Lexed>) -> Result<Vec<TagContents>, LexerErr> {
         },
         Token::GT | Token::SelfClose => {
           if !in_tag {
-            return Err(LexerErr((format!("Tag error: {:?}", token)).to_string()));
+            return Err(Error((format!("Tag error: {:?}", token)).to_string()));
           } else {
             let name;
             if let Some(n) = tag_name {
               name = n;
             } else {
-              return Err(LexerErr("No tag name".to_string()));
+              return Err(Error("No tag name".to_string()));
             }
 
             let mut attrs: AttrMap = HashMap::new();
             for i in buf_attrs.into_iter() {
-              attrs.insert(i.0, i.1);
+              if i.0.len() > 0 {
+                attrs.insert(i.0, i.1);
+              }
             }
 
             let tag = Tag {
@@ -275,7 +275,7 @@ fn taginize(tokenized: Vec<Lexed>) -> Result<Vec<TagContents>, LexerErr> {
                   if tag_status == TagStatus::Open {
                     TagStatus::SelfClose
                   } else {
-                    return Err(LexerErr("Cannot have self close and close on same tag".to_string()));
+                    return Err(Error("Cannot have self close and close on same tag".to_string()));
                   }
                 },
                 _ => TagStatus::None // will never happen
@@ -302,26 +302,26 @@ fn taginize(tokenized: Vec<Lexed>) -> Result<Vec<TagContents>, LexerErr> {
     }
   }
 
-  // Err(LexerErr("what".to_string()))
+  // Err(Error("what".to_string()))
   Ok(tags)
 }
 
-pub fn lex(query: String) -> Result<Vec<TagContents>, LexerErr> {
+pub fn lex(query: String) -> Result<Vec<TagContents>, Error> {
   println!("[init lexer]");
 
   let pre_lexed = pre_lex(query)?;
 
-  println!("{:?}", pre_lexed);
+  // println!("{:?}", pre_lexed);
 
   let tokenized = tokenize(pre_lexed)?;
 
-  println!("{:?}", tokenized);
+  // println!("{:?}", tokenized);
 
   let taginized = taginize(tokenized)?;
 
-  println!("{:?}", taginized);
+  // println!("{:?}", taginized);
 
-  // Err(LexerErr("test".to_string()))
+  // Err(Error("test".to_string()))
 
   Ok(taginized)
 }
