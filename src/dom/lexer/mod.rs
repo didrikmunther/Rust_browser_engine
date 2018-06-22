@@ -186,19 +186,25 @@ fn taginize(tokenized: Vec<Lexed>) -> Result<Vec<TagContents>, LexerErr> {
   let mut tag_name: Option<String> = None;
   let mut buf_attrs: Vec<(String, String)> = Vec::new();
 
+  let mut pre_tag_buf: String = String::new();
+
   for (i, v) in tokenized.into_iter().enumerate() {
     match v {
       Lexed::String(s) => {
-        if after_equals {
-          after_equals = false;
-          let last = buf_attrs.pop();
-          match last {
-            Some(last) => {
-              let n = (last.0, s.to_string());
-              buf_attrs.push(n);
-            },
-            None => return Err(LexerErr("Wrong equals".to_string()))
+        if in_tag {
+          if after_equals {
+            after_equals = false;
+            let last = buf_attrs.pop();
+            match last {
+              Some(last) => {
+                let n = (last.0, s.to_string());
+                buf_attrs.push(n);
+              },
+              None => return Err(LexerErr("Wrong equals".to_string()))
+            }
           }
+        } else {
+          pre_tag_buf.push_str(&s);
         }
       },
       Lexed::Content(s) => {
@@ -222,6 +228,8 @@ fn taginize(tokenized: Vec<Lexed>) -> Result<Vec<TagContents>, LexerErr> {
               buf_attrs.push((i.to_string(), "".to_string()));
             }
           }
+        } else {
+          pre_tag_buf.push_str(&s);
         }
       },
       Lexed::Token(token) => match token {
@@ -229,6 +237,11 @@ fn taginize(tokenized: Vec<Lexed>) -> Result<Vec<TagContents>, LexerErr> {
           if in_tag {
             return Err(LexerErr("Tag error: <".to_string()));
           } else {
+            if pre_tag_buf.len() > 0 {
+              tags.push(TagContents::Content(pre_tag_buf));
+              pre_tag_buf = String::new();
+            }
+
             in_tag = true;
             tag_status = match token {
               Token::LT => TagStatus::Open,
@@ -281,6 +294,8 @@ fn taginize(tokenized: Vec<Lexed>) -> Result<Vec<TagContents>, LexerErr> {
         Token::Equals => {
           if in_tag {
             after_equals = true;
+          } else {
+            pre_tag_buf.push('=');
           }
         }
       }
@@ -306,5 +321,7 @@ pub fn lex(query: String) -> Result<Vec<TagContents>, LexerErr> {
 
   println!("{:?}", taginized);
 
-  Err(LexerErr("test".to_string()))
+  // Err(LexerErr("test".to_string()))
+
+  Ok(taginized)
 }
