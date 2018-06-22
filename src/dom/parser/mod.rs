@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use AttrMap;
 
 struct Node {
   children: Vec<Node>,
@@ -14,5 +14,3 @@ struct ElementData {
   tag_name: String,
   attributes: AttrMap
 }
-
-type AttrMap = HashMap<String, String>;
