@@ -39,7 +39,7 @@ impl Parser {
   pub fn get_node(&mut self) -> Result<Node, Error> {
     let self_point: *mut Self = self;
 
-    let mut my_tag = match self.tags[self.current] {
+    let my_tag = match self.tags[self.current] {
       TagContents::Content(_) => return Err(Error("Node is content".to_string())),
       TagContents::Tag(ref tag) => tag
     };
@@ -50,7 +50,7 @@ impl Parser {
       loop {
         self.current += 1;
 
-        let content = match self.tags[self.current] {
+        match self.tags[self.current] {
           TagContents::Content(ref s) => children.push(Node {
             children: Vec::new(),
             node_type: NodeType::Text(s.to_string())
@@ -64,7 +64,7 @@ impl Parser {
             };
             children.push(child_tag);
           }
-        };
+        }
       }
     }
 

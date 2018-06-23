@@ -256,7 +256,7 @@ fn taginize(tokenized: Vec<Lexed>) -> Result<Vec<TagContents>, Error> {
   let mut tag_status: TagStatus = TagStatus::None;
 
   let mut tag_name: Option<String> = None;
-  let mut buf_attrs: Vec<(String, String)> = Vec::new();
+  let mut buf_attrs: Vec<(String, Option<String>)> = Vec::new();
 
   let mut pre_tag_buf: String = String::new();
 
@@ -269,7 +269,7 @@ fn taginize(tokenized: Vec<Lexed>) -> Result<Vec<TagContents>, Error> {
             let last = buf_attrs.pop();
             match last {
               Some(last) => {
-                let n = (last.0, s.to_string());
+                let n = (last.0, Some(s.to_string()));
                 buf_attrs.push(n);
               },
               None => return Err(Error("Wrong equals".to_string()))
@@ -291,13 +291,13 @@ fn taginize(tokenized: Vec<Lexed>) -> Result<Vec<TagContents>, Error> {
                 first = false;
                 tag_name = Some(i.to_string());
               } else {
-                buf_attrs.push((i.to_string(), "".to_string()));
+                buf_attrs.push((i.to_string(), None));
               }
             }
           } else {
             let splitted = s.split(" ");
             for i in splitted.into_iter() {
-              buf_attrs.push((i.to_string(), "".to_string()));
+              buf_attrs.push((i.to_string(), None));
             }
           }
         } else {

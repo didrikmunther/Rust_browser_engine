@@ -1,4 +1,4 @@
-
+use super::{Error, helper::{PreLexed, pre_lex}};
 
 // enum Selector {
 //   Simple {
@@ -28,5 +28,7 @@
 // fn 
 
 pub fn lex(query: String) {
+  let pre_lexed = pre_lex(query)?;
 
+  
 }

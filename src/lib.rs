@@ -7,7 +7,7 @@ mod helper;
 mod dom;
 mod css;
 
-type AttrMap = HashMap<String, String>;
+type AttrMap = HashMap<String, Option<String>>;
 
 pub fn init() -> Result<(), helper::Error> {
   println!("[init lib]");
