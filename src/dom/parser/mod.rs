@@ -2,19 +2,19 @@ use AttrMap;
 use super::{Error, lexer::{TagContents, TagStatus}};
 
 #[derive(Debug)]
-struct Node {
+pub struct Node {
   children: Vec<Node>,
   node_type: NodeType
 }
 
 #[derive(Debug)]
-enum NodeType {
+pub enum NodeType {
   Text(String),
   Element(ElementData)
 }
 
 #[derive(Debug)]
-struct ElementData {
+pub struct ElementData {
   tag_name: String,
   attributes: AttrMap
 }
@@ -78,12 +78,13 @@ impl Parser {
   }
 }
 
-pub fn parse(tags: Vec<TagContents>) -> Result<(), Error> {
+pub fn parse(tags: Vec<TagContents>) -> Result<Node, Error> {
+  println!("[init parser]");
 
   let mut parser = Parser::new(tags);
   let root = parser.get_node()?;
 
-  println!("{:?}", root);
+  // println!("{:?}", root);
 
-  Ok(())
+  Ok(root)
 }

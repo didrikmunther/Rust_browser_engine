@@ -1,16 +1,17 @@
+use super::helper;
+use helper::Error;
+
 mod lexer;
 mod parser;
-
-pub struct Error(String);
 
 pub fn parse_dom(query: String) -> Result<(), Error> {
   let lexed = lexer::lex(query)?;
 
-  println!("{:?}", lexed);
+  println!("lexed: {:?}", lexed);
 
   let parsed = parser::parse(lexed)?;
 
-  println!("{:?}", parsed);
+  println!("parsed: {:?}", parsed);
 
   Ok(())
 }

@@ -1,6 +1,8 @@
+use std::cmp::PartialEq;
+
 use AttrMap;
 use HashMap;
-use super::Error;
+use super::{Error, helper::{PreLexed, pre_lex}};
 
 macro_rules! map(
   { $($key:expr => $value:expr),+ } => {
@@ -15,23 +17,20 @@ macro_rules! map(
 );
 
 #[derive(Debug)]
-enum PreLexed {
-  String(String),
-  Rest(String)
-}
-
-#[derive(Debug)]
 enum Lexed {
   Content(String),
   String(String),
   Token(Token),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum Token {
   LT, // <
   GT, // >
   Equals, // =
+  Slash, // /
+
+  // 
   CloseTag, // </
   SelfClose // />
 }
@@ -57,43 +56,17 @@ pub enum TagContents {
   Content(String)
 }
 
-fn pre_lex(query: String) -> Result<Vec<PreLexed>, Error> {
-  let mut result: Vec<PreLexed> = Vec::new();
-  let mut buf: String = String::new();
-  let mut is_string = false;
-
-  for (i, c) in query.chars().enumerate() {
-    match c {
-      '"' => {
-        if is_string {
-          result.push(PreLexed::String(buf));
-          buf = String::new();
-          is_string = false;
-        } else {
-          result.push(PreLexed::Rest(buf));
-          buf = String::new();
-          is_string = true;
-        }
-      },
-      _ => {
-        buf.push(c);
-      }
-    }
-  }
-
-  result.push(PreLexed::Rest(buf));
-
-  Ok(result)
-}
-
-fn tokenize(pre_lexed: Vec<PreLexed>) -> Result<Vec<Lexed>, Error> {
-  let token_lookup: HashMap<&str, Token> = map!{
+fn get_tokens() -> HashMap<&'static str, Token> {
+  map!{
     "<" => Token::LT,
     ">" => Token::GT,
     "=" => Token::Equals,
-    "</" => Token::CloseTag,
-    "/>" => Token::SelfClose
-  };
+    "/" => Token::Slash
+  }
+}
+
+fn tokenize(pre_lexed: Vec<PreLexed>) -> Result<Vec<Lexed>, Error> {
+  let token_lookup = get_tokens();
 
   let is_token = |val: &str| -> Option<Token> {
     match token_lookup.get(val) {
@@ -115,15 +88,31 @@ fn tokenize(pre_lexed: Vec<PreLexed>) -> Result<Vec<Lexed>, Error> {
   //   Some(String::from(val))
   // };
 
-  let is_string = |val: &str| -> Option<String> {
-    if val.len() <= 0 { return None; }
+  let tokens = get_tokens();
 
-    for i in val.chars() {
-      match i {
-        'a' ... 'z' | 'A' ... 'Z' | '_' | '0' ... '9' | '\n' | '\t' | ' ' => { },
-        _ => { return None; }
+  let is_string = |val: &str| -> Option<String> {
+    let len = val.len();
+    if len <= 0 { return None; }
+
+    for (i, v) in tokens.iter() {
+      if val.contains(i) {
+        return None;
       }
     }
+
+    // for (i, c) in val.chars().enumerate() {
+    //   match c {
+    //     // 'a' ... 'z' | 'A' ... 'Z' | '_' | '0' ... '9' | '\n' | '\t' | ' ' => { },
+    //     '<' | '>' | '=' => return None,
+    //     _ => { }
+    //   }
+    //   if i + 1 <= len {
+    //     match (c, &val[i + 1]) {
+    //       ('<', '/') | ('/', '>') => return None,
+    //       _ => {}
+    //     }
+    //   }
+    // }
 
     Some(String::from(val))
   };
@@ -172,6 +161,91 @@ fn tokenize(pre_lexed: Vec<PreLexed>) -> Result<Vec<Lexed>, Error> {
   }
 
   Ok(tokenized)
+}
+
+fn compress_tokens(tokenized: Vec<Lexed>) -> Result<Vec<Lexed>, Error> {
+  let tokens: HashMap<&str, Token> = map!{ // longest bottom
+    "/>" => Token::SelfClose,
+    "</" => Token::CloseTag
+  };
+
+  let single_tokens = get_tokens();
+
+  let mut last_tokens: Vec<Token> = Vec::new();
+  let mut result: Vec<Lexed> = Vec::new();
+
+  let get_new_tokens = |last_tokens: &mut Vec<Token>| {
+    let len = last_tokens.len();
+    let mut new_tokens: Vec<Token> = Vec::new();
+    
+    if len > 1 {
+      let mut pos = 0;
+      let mut offset = len;
+
+      loop {
+        if pos > len || pos >= offset {
+          break;
+        }
+
+        let current = &last_tokens[pos..offset];
+        let mut string_current = String::new();
+        for token in current.iter() {
+          for (i, v) in single_tokens.iter() {
+            if *v == *token {
+              string_current.push_str(i.clone());
+            }
+          } 
+        }
+
+        println!("{:?}, {:?}", string_current, new_tokens);
+
+        if string_current.len() == 1 {
+          new_tokens.push(current[0].clone());
+          pos += 1;
+          offset = len;
+          println!("{}, {}", pos, offset);
+          continue;
+        }
+
+        for (&k, v) in tokens.iter() {
+          if string_current == k {
+            pos += k.len();
+            offset = len;
+            new_tokens.push(v.clone());
+            continue;
+          }
+        }
+
+        offset -= 1;
+      }
+
+    } else if len == 1 {
+      new_tokens.push(last_tokens[0].clone());
+    }
+
+    new_tokens
+  };
+
+  for v in tokenized.into_iter() {
+    match v {
+      Lexed::Token(token) => {
+        last_tokens.push(token);
+      },
+      Lexed::Content(_) | Lexed::String(_) => {
+        for i in get_new_tokens(&mut last_tokens) {
+          result.push(Lexed::Token(i));
+        }
+        last_tokens = Vec::new();
+        result.push(v);
+      }
+    }
+  }
+
+  for i in get_new_tokens(&mut last_tokens) {
+    result.push(Lexed::Token(i));
+  }
+
+  Ok(result)
 }
 
 fn taginize(tokenized: Vec<Lexed>) -> Result<Vec<TagContents>, Error> {
@@ -297,6 +371,13 @@ fn taginize(tokenized: Vec<Lexed>) -> Result<Vec<TagContents>, Error> {
           } else {
             pre_tag_buf.push('=');
           }
+        },
+        Token::Slash => {
+          if in_tag {
+            return Err(Error("Slash not allowed in tags".to_string()));
+          } else {
+            pre_tag_buf.push('/');
+          }
         }
       }
     }
@@ -311,17 +392,11 @@ pub fn lex(query: String) -> Result<Vec<TagContents>, Error> {
 
   let pre_lexed = pre_lex(query)?;
 
-  // println!("{:?}", pre_lexed);
-
   let tokenized = tokenize(pre_lexed)?;
 
-  // println!("{:?}", tokenized);
+  let tokenized = compress_tokens(tokenized)?;
 
   let taginized = taginize(tokenized)?;
-
-  // println!("{:?}", taginized);
-
-  // Err(Error("test".to_string()))
 
   Ok(taginized)
 }

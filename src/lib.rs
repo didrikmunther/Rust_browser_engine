@@ -1,13 +1,27 @@
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::{Read};
+
+mod helper;
 
 mod dom;
 mod css;
 
 type AttrMap = HashMap<String, String>;
 
-pub fn init() -> Result<(), dom::Error> {
+pub fn init() -> Result<(), helper::Error> {
   println!("[init lib]");
-  dom::parse_dom("<html version=\"i want to die\" damn what>\n\t<body>\n\t\t<p style=\"color:red;\">\n\t\t\tHello = there <b/>\n\t\t</p>\n\t</body>\n</html>".to_string())
+
+  let mut f = File::open("index.html")
+    .expect("file not found");
+
+  let mut contents = String::new();
+  f.read_to_string(&mut contents)
+    .expect("something went wrong reading the file");
+
+  
+
+  dom::parse_dom(contents.to_string())
 }
 
 #[cfg(test)]
