@@ -1,3 +1,19 @@
+#![macro_escape]
+
+#[macro_use]
+macro_rules! map(
+  { $($key:expr => $value:expr),+ } => {
+    {
+      let mut m = ::std::collections::HashMap::new();
+        $(
+          m.insert($key, $value);
+        )+
+      m
+    }
+  };
+);
+
+#[derive(Debug)]
 pub struct Error(pub String);
 
 #[derive(Debug)]

@@ -4,18 +4,6 @@ use AttrMap;
 use HashMap;
 use super::{Error, helper::{PreLexed, pre_lex}};
 
-macro_rules! map(
-  { $($key:expr => $value:expr),+ } => {
-    {
-      let mut m = ::std::collections::HashMap::new();
-        $(
-          m.insert($key, $value);
-        )+
-      m
-    }
-  };
-);
-
 #[derive(Debug)]
 enum Lexed {
   Content(String),
@@ -197,13 +185,13 @@ fn compress_tokens(tokenized: Vec<Lexed>) -> Result<Vec<Lexed>, Error> {
           } 
         }
 
-        println!("{:?}, {:?}", string_current, new_tokens);
+        // println!("{:?}, {:?}", string_current, new_tokens);
 
         if string_current.len() == 1 {
           new_tokens.push(current[0].clone());
           pos += 1;
           offset = len;
-          println!("{}, {}", pos, offset);
+          // println!("{}, {}", pos, offset);
           continue;
         }
 

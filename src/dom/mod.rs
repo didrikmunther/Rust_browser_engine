@@ -7,7 +7,7 @@ mod parser;
 pub fn parse_dom(query: String) -> Result<(), Error> {
   let lexed = lexer::lex(query)?;
 
-  println!("lexed: {:?}", lexed);
+  // println!("lexed: {:?}", lexed);
 
   let parsed = parser::parse(lexed)?;
 
