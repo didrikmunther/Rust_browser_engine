@@ -1,5 +1,5 @@
 extern crate browser;
 
 fn main() {
-  browser::init();
+  println!("{:?}", browser::init());
 }

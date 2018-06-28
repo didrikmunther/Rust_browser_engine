@@ -239,7 +239,15 @@ fn compress_tokens(tokenized: Vec<Lexed>) -> Result<Vec<Lexed>, Error> {
 fn taginize(tokenized: Vec<Lexed>) -> Result<Vec<TagContents>, Error> {
   let mut tags: Vec<TagContents> = Vec::new();
 
+  // enum TagType {
+  //   Unknown,
+  //   Node,
+  //   Style,
+  //   Script
+  // }
+
   let mut in_tag = false;
+  // let mut tag_type = TagType::Unknown;
   let mut after_equals = false;
   let mut tag_status: TagStatus = TagStatus::None;
 

@@ -32,10 +32,6 @@ impl Parser {
     }
   }
 
-  fn advance(&mut self) {
-    self.current += 1;
-  }
-
   pub fn get_node(&mut self) -> Result<Node, Error> {
     let self_point: *mut Self = self;
 

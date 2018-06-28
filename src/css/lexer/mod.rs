@@ -1,16 +1,20 @@
 use std::collections::HashMap;
 use super::{Error, helper::{PreLexed, pre_lex}};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Token {
+  None,
+
   GT,
   BraceOpen,
   BraceClose,
   Comma,
+  Dot,
   ParOpen,
   ParClose,
   SemiColon,
   Colon,
+  DoubleColon,
   Hash,
   Star,
 
@@ -24,45 +28,20 @@ pub enum Lexed {
   Token(Token),
 }
 
-// enum Selector {
-//   Simple {
-//     ids: Vec<String>,
-//     classes: Vec<String>,
-//     tag_names: Vec<String>
-//   }
-// }
-
-// struct Declaration {
-//   name: String,
-//   value: Value
-// }
-
-// struct Value {
-  
-// }
-
-// struct Rule {
-
-// }
-
-// struct Stylesheet {
-//   rules: Vec<Rule>
-// }
-
 fn get_tokens() -> HashMap<&'static str, Token> {
   map!{
     ">" => Token::GT,
     "{" => Token::BraceOpen,
     "}" => Token::BraceClose,
     ":" => Token::Colon,
+    "::" => Token::DoubleColon,
     ";" => Token::SemiColon,
-    "#" => Token::Hash
+    "#" => Token::Hash,
+    "," => Token::Comma,
+    "." => Token::Dot,
+    "*" => Token::Star
   }
 }
-
-// fn trim(query: &str) -> String {
-//   query.trim()
-// }
 
 fn tokenize(pre_lexed: Vec<PreLexed>) -> Result<Vec<Lexed>, Error> {
   let mut result: Vec<Lexed> = Vec::new();

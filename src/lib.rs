@@ -28,7 +28,7 @@ pub fn init() -> Result<(), helper::Error> {
   f.read_to_string(&mut contents)
     .expect("something went wrong reading the file");
 
-  css::parse_css(contents.to_string());
+  css::parse_stylesheet(contents.to_string());
 
   Ok(())
 }
