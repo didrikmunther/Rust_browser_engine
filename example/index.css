@@ -1,7 +1,15 @@
+* {
+  display: block;
+}
+
 head {
   display: none;
 }
 
 div > p {
   color: #afa;
+}
+
+div, p {
+  width: 50px;
 }

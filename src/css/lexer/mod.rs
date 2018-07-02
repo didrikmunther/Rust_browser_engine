@@ -17,13 +17,20 @@ pub enum Token {
   DoubleColon,
   Hash,
   Star,
+  Tilde,
+  Plus,
 
-  RGB
+  RGB,
+  Px,
+  Percent
 }
+
+type StyleNumber = f32;
 
 #[derive(Debug)]
 pub enum Lexed {
   Identifier(String),
+  Number(StyleNumber),
   String(String),
   Token(Token),
 }
@@ -39,7 +46,11 @@ fn get_tokens() -> HashMap<&'static str, Token> {
     "#" => Token::Hash,
     "," => Token::Comma,
     "." => Token::Dot,
-    "*" => Token::Star
+    "*" => Token::Star,
+    "~" => Token::Tilde,
+    "+" => Token::Plus,
+    "px" => Token::Px,
+    "%" => Token::Percent
   }
 }
 
@@ -54,9 +65,16 @@ fn tokenize(pre_lexed: Vec<PreLexed>) -> Result<Vec<Lexed>, Error> {
 
     for i in query.chars() {
       match i {
+        '0' ... '9' => {
+          if first {
+            return None;
+          } else {
+            expect_more = false;
+          }
+        }
         'a' ... 'z' | 'A' ... 'Z' => expect_more = false,
-        '_' | '-' | '0' ... '9' => expect_more = first,
-        _ => { return None; }
+        '_' | '-' => expect_more = first,
+        _ => return None
       }
       first = false;
     }
@@ -66,6 +84,15 @@ fn tokenize(pre_lexed: Vec<PreLexed>) -> Result<Vec<Lexed>, Error> {
     }
 
     Some(String::from(query))
+  };
+
+  //std::num::ParseFloatError
+
+  let is_number = |query: &str| -> Option<StyleNumber> {
+    match query.parse::<StyleNumber>() {
+      Ok(num) => Some(num),
+      _ => None
+    }
   };
 
   let is_token = |query: &str| -> Option<Token> {
@@ -102,6 +129,8 @@ fn tokenize(pre_lexed: Vec<PreLexed>) -> Result<Vec<Lexed>, Error> {
             result.push(Lexed::Token(token));
           } else if let Some(identifier) = is_identifier(content) {
             result.push(Lexed::Identifier(identifier));
+          } else if let Some(num) = is_number(content) {
+            result.push(Lexed::Number(num));
           } else {
             continue;
           }
