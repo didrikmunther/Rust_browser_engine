@@ -4,6 +4,7 @@ use helper::Error;
 mod lexer;
 mod parser;
 
+use self::lexer::{StyleNumber};
 use self::parser::{Stylesheet, Declaration};
 
 pub fn parse_stylesheet(query: String) -> Result<Stylesheet, Error> {
@@ -12,7 +13,7 @@ pub fn parse_stylesheet(query: String) -> Result<Stylesheet, Error> {
   let lexed = lexer::lex(query)?;
   let stylesheet = parser::parse_stylesheet(lexed)?;
 
-  println!("style: {:?}", stylesheet);
+  println!("style: {:#?}", stylesheet);
 
   Ok(stylesheet)
 }

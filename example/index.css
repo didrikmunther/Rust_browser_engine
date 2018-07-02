@@ -6,7 +6,7 @@ head {
   display: none;
 }
 
-div > p {
+div.thing > p {
   color: #afa;
 }
 

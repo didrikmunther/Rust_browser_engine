@@ -25,9 +25,9 @@ pub enum Token {
   Percent
 }
 
-type StyleNumber = f32;
+pub type StyleNumber = f32;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Lexed {
   Identifier(String),
   Number(StyleNumber),

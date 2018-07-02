@@ -1,4 +1,4 @@
-use super::{Error, lexer::{Lexed, Token}};
+use super::{Error, StyleNumber, lexer::{Lexed, Token}};
 
 #[derive(Debug)]
 pub struct Stylesheet {
@@ -56,7 +56,8 @@ pub enum IdentifierType {
   Simple {
     tag_name: Option<String>
   },
-  Everything // *
+  Everything, // *,
+  Any
 }
 
 #[derive(Debug)]
@@ -68,7 +69,7 @@ pub struct Declaration {
 #[derive(Debug)]
 pub enum Value {
   Keyword(String),
-  Length(f32, Unit),
+  Length(StyleNumber, Unit),
   Color {
     r: u8,
     g: u8,
@@ -264,7 +265,7 @@ impl SelectorParser {
           prev_token = &Token::None;
         },
         &Lexed::Number(ref num) => {
-          
+
         },
         &Lexed::Token(ref token) => {
           match token {
@@ -298,5 +299,81 @@ pub fn parse_declarations(lexed: Vec<Lexed>) -> Result<Vec<Declaration>, Error> 
 
   println!("decls: {:?}", splitted);
 
-  Ok(Vec::new())
+  let mut declarations: Vec<Declaration> = Vec::new();
+
+  for i in splitted.into_iter() {
+    let length = i.len();
+    if length <= 2 {
+      continue; // forgiving errors
+    }
+
+    match &i[1] {
+      &Lexed::Token(ref token) => match token {
+        &Token::Colon => {},
+        _ => continue
+      }
+      _ => continue
+    }
+
+    let name = match &i[0] {
+      &Lexed::Identifier(ref identifier) => identifier.clone(),
+      _ => continue
+    };
+
+    let value = match match &name as &str {
+      "width" => parse_length,
+      "display" => parse_keyword,
+      _ => continue
+    }(&i[2..]) {
+      Ok(val) => val,
+      Err(_) => continue
+    };
+
+    declarations.push(Declaration {
+      name,
+      value
+    });
+  }
+
+  Ok(declarations)
+}
+
+fn parse_keyword(lexed: &[Lexed]) -> Result<Value, Error> {
+  let length = lexed.len();
+
+  if length <= 0 {
+    return Err(Error(format!("Length too small for parse_keyword")));
+  }
+
+  let keyword = match &lexed[0] {
+    &Lexed::Identifier(ref identifier) => identifier.clone(),
+    _ => return Err(Error(format!("Not a keyword for parse_keyword")))
+  };
+
+  Ok(Value::Keyword(keyword))
+}
+
+fn parse_length(lexed: &[Lexed]) -> Result<Value, Error> {
+  let length = lexed.len();
+
+  if length <= 1 {
+    return Err(Error(format!("Length too small for parse_length")));
+  }
+
+  let number = match &lexed[0] {
+    &Lexed::Number(num) => {
+      num
+    },
+    _ => return Err(Error(format!("Length not a number for parse_length")))
+  };
+
+  let unit = match &lexed[1] {
+    &Lexed::Token(ref token) => match token {
+      &Token::Px => Unit::Px,
+      _ => return Err(Error(format!("Unknown unit for parse_length")))
+    },
+    _ => return Err(Error(format!("Unknown unit for parse_length")))
+  };
+
+  Ok(Value::Length(number, unit))
 }
